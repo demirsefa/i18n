@@ -206,7 +206,7 @@ export class I18n<Translations extends Record<string, any> = Record<string, any>
    */
   public interpolate: typeof interpolate;
 
-  constructor(translations: Dict = {}, options: Partial<I18nOptions> = {}) {
+  constructor(translations: Record<string, Translations> = {} as Record<string, Translations>, options: Partial<I18nOptions> = {}) {
     const {
       locale,
       enableFallback,
@@ -433,7 +433,7 @@ export class I18n<Translations extends Record<string, any> = Record<string, any>
     options?: TranslateOptions,
   ): string {
     return pluralize({
-      i18n: I18n,
+      i18n: this as unknown as I18n,
       count,
       scope: scope as unknown as Scope,
       options: { ...options },
