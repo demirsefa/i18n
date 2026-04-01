@@ -68,13 +68,7 @@ const DEFAULT_I18N_OPTIONS: I18nOptions = {
   transformKey: (key: string): string => key,
 };
 
-export type FlattenKeys<T, Prefix extends string = ""> = {
-  [K in keyof T & string]: T[K] extends Record<string, unknown>
-  ? FlattenKeys<T[K], `${Prefix}${K}.`>
-  : `${Prefix}${K}`;
-}[keyof T & string];
-
-export class I18n<Translations extends Record<string, any> = Record<string, any>> {
+export class I18n {
   private _locale: string = DEFAULT_I18N_OPTIONS.locale;
   private _defaultLocale: string = DEFAULT_I18N_OPTIONS.defaultLocale;
   private _version = 0;
@@ -206,7 +200,7 @@ export class I18n<Translations extends Record<string, any> = Record<string, any>
    */
   public interpolate: typeof interpolate;
 
-  constructor(translations: Record<string, Translations> = {} as Record<string, Translations>, options: Partial<I18nOptions> = {}) {
+  constructor(translations: Dict = {}, options: Partial<I18nOptions> = {}) {
     const {
       locale,
       enableFallback,
@@ -347,18 +341,15 @@ export class I18n<Translations extends Record<string, any> = Record<string, any>
    *
    * @returns {T | string} The translated string.
    */
-  public translate<
-    T = string,
-    Key extends string = Extract<FlattenKeys<Translations>, string>
-  >(
-    scope: Key | Readonly<Key[]>,
+  public translate<T = string>(
+    scope: Scope,
     options?: TranslateOptions,
   ): string | T {
     options = { ...options };
 
     const translationOptions: TranslateOptions[] = createTranslationOptions(
-      this as unknown as I18n,
-      scope as unknown as Scope,
+      this,
+      scope,
       options,
     ) as TranslateOptions[];
 
@@ -369,7 +360,7 @@ export class I18n<Translations extends Record<string, any> = Record<string, any>
     const hasFoundTranslation = translationOptions.some(
       (translationOption: TranslateOptions) => {
         if (isSet(translationOption.scope)) {
-          translation = lookup(this as unknown as I18n, translationOption.scope as Scope, options);
+          translation = lookup(this, translationOption.scope as Scope, options);
         } else if (isSet(translationOption.message)) {
           translation = translationOption.message;
         }
@@ -379,29 +370,29 @@ export class I18n<Translations extends Record<string, any> = Record<string, any>
     );
 
     if (!hasFoundTranslation) {
-      return this.missingTranslation.get(scope as unknown as Scope, options);
+      return this.missingTranslation.get(scope, options);
     }
 
     if (typeof translation === "string") {
-      translation = this.interpolate(this as unknown as I18n, translation, options);
+      translation = this.interpolate(this, translation, options);
     } else if (
       typeof translation === "object" &&
       translation &&
       isSet(options.count)
     ) {
       translation = pluralize({
-        i18n: this as unknown as I18n,
+        i18n: this,
         count: options.count || 0,
         scope: translation as unknown as string,
         options,
-        baseScope: getFullScope(this as unknown as I18n, scope as unknown as Scope, options),
+        baseScope: getFullScope(this, scope, options),
       });
     }
 
     if (options && translation instanceof Array) {
       translation = translation.map((entry) =>
         typeof entry === "string"
-          ? interpolate(this as unknown as I18n, entry, options as TranslateOptions)
+          ? interpolate(this, entry, options as TranslateOptions)
           : entry,
       );
     }
@@ -427,17 +418,17 @@ export class I18n<Translations extends Record<string, any> = Record<string, any>
    *
    * @returns {string} The translated string.
    */
-  public pluralize<Key extends string = Extract<FlattenKeys<Translations>, string>>(
+  public pluralize(
     count: number,
-    scope: Key | Readonly<Key[]>,
+    scope: Scope,
     options?: TranslateOptions,
   ): string {
     return pluralize({
-      i18n: this as unknown as I18n,
+      i18n: this,
       count,
-      scope: scope as unknown as Scope,
+      scope,
       options: { ...options },
-      baseScope: getFullScope(this as unknown as I18n, scope as unknown as Scope, options ?? {}),
+      baseScope: getFullScope(this, scope, options ?? {}),
     });
   }
 

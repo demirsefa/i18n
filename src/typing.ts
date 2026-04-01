@@ -206,7 +206,7 @@ export interface I18nOptions {
 }
 
 // The translation scope.
-export type Scope = Readonly<string | string[]>;
+export type Scope = never;
 
 // The locale resolver.
 export type LocaleResolver = (i18n: I18n, locale: string) => string[];
