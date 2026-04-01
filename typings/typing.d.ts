@@ -65,7 +65,7 @@ export interface I18nOptions {
     placeholder: RegExp;
     transformKey: (key: string) => string;
 }
-export type Scope = Readonly<string | string[]>;
+export type Scope = never;
 export type LocaleResolver = (i18n: I18n, locale: string) => string[];
 export type Pluralizer = (i18n: I18n, count: number) => string[];
 export type MissingTranslationStrategy = (i18n: I18n, scope: Scope, options: Dict) => string;
