@@ -68,7 +68,13 @@ const DEFAULT_I18N_OPTIONS: I18nOptions = {
   transformKey: (key: string): string => key,
 };
 
-export class I18n {
+export type FlattenKeys<T, Prefix extends string = ""> = {
+  [K in keyof T & string]: T[K] extends Record<string, unknown>
+  ? FlattenKeys<T[K], `${Prefix}${K}.`>
+  : `${Prefix}${K}`;
+}[keyof T & string];
+
+export class I18n<Translations extends Record<string, any> = Record<string, any>> {
   private _locale: string = DEFAULT_I18N_OPTIONS.locale;
   private _defaultLocale: string = DEFAULT_I18N_OPTIONS.defaultLocale;
   private _version = 0;
@@ -341,15 +347,18 @@ export class I18n {
    *
    * @returns {T | string} The translated string.
    */
-  public translate<T = string>(
-    scope: Scope,
+  public translate<
+    T = string,
+    Key extends string = Extract<FlattenKeys<Translations>, string>
+  >(
+    scope: Key | Readonly<Key[]>,
     options?: TranslateOptions,
   ): string | T {
     options = { ...options };
 
     const translationOptions: TranslateOptions[] = createTranslationOptions(
-      this,
-      scope,
+      this as unknown as I18n,
+      scope as unknown as Scope,
       options,
     ) as TranslateOptions[];
 
@@ -360,7 +369,7 @@ export class I18n {
     const hasFoundTranslation = translationOptions.some(
       (translationOption: TranslateOptions) => {
         if (isSet(translationOption.scope)) {
-          translation = lookup(this, translationOption.scope as Scope, options);
+          translation = lookup(this as unknown as I18n, translationOption.scope as Scope, options);
         } else if (isSet(translationOption.message)) {
           translation = translationOption.message;
         }
@@ -370,29 +379,29 @@ export class I18n {
     );
 
     if (!hasFoundTranslation) {
-      return this.missingTranslation.get(scope, options);
+      return this.missingTranslation.get(scope as unknown as Scope, options);
     }
 
     if (typeof translation === "string") {
-      translation = this.interpolate(this, translation, options);
+      translation = this.interpolate(this as unknown as I18n, translation, options);
     } else if (
       typeof translation === "object" &&
       translation &&
       isSet(options.count)
     ) {
       translation = pluralize({
-        i18n: this,
+        i18n: this as unknown as I18n,
         count: options.count || 0,
         scope: translation as unknown as string,
         options,
-        baseScope: getFullScope(this, scope, options),
+        baseScope: getFullScope(this as unknown as I18n, scope as unknown as Scope, options),
       });
     }
 
     if (options && translation instanceof Array) {
       translation = translation.map((entry) =>
         typeof entry === "string"
-          ? interpolate(this, entry, options as TranslateOptions)
+          ? interpolate(this as unknown as I18n, entry, options as TranslateOptions)
           : entry,
       );
     }
@@ -418,17 +427,17 @@ export class I18n {
    *
    * @returns {string} The translated string.
    */
-  public pluralize(
+  public pluralize<Key extends string = Extract<FlattenKeys<Translations>, string>>(
     count: number,
-    scope: Scope,
+    scope: Key | Readonly<Key[]>,
     options?: TranslateOptions,
   ): string {
     return pluralize({
-      i18n: this,
+      i18n: I18n,
       count,
-      scope,
+      scope: scope as unknown as Scope,
       options: { ...options },
-      baseScope: getFullScope(this, scope, options ?? {}),
+      baseScope: getFullScope(this as unknown as I18n, scope as unknown as Scope, options ?? {}),
     });
   }
 
